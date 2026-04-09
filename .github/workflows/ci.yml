@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-smoke:
+    name: Build and Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GOREST_BASE_URL: https://gorest.co.in/public/v2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript
+        run: pnpm run build
+
+      - name: Run smoke test
+        run: |
+          mkdir -p reports
+          k6 run \
+            --summary-export reports/smoke-summary.json \
+            dist/tests/smoke/gorest.smoke.js \
+            | tee reports/smoke.log
+
+      - name: Publish smoke summary
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          const summary = JSON.parse(fs.readFileSync('reports/smoke-summary.json', 'utf8'));
+          const metrics = summary.metrics || {};
+          const p95 = metrics.http_req_duration?.values?.['p(95)'] ?? 'n/a';
+          const failed = metrics.http_req_failed?.values?.rate ?? 'n/a';
+          const iterations = metrics.iterations?.values?.count ?? 'n/a';
+          const lines = [
+            '## Smoke Summary',
+            '',
+            '| Metric | Value |',
+            '| --- | --- |',
+            `| Iterations | ${iterations} |`,
+            `| http_req_duration p(95) | ${p95} |`,
+            `| http_req_failed rate | ${failed} |`
+          ];
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
+          EOF
+
+      - name: Upload smoke artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report-${{ github.run_id }}
+          path: |
+            reports/smoke-summary.json
+            reports/smoke.log
