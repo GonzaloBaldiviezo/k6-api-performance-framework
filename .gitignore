@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# Test outputs and local artifacts
+reports/
+*.log
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and OS
+.DS_Store
+.vscode/settings.json
+
+# pnpm
+pnpm-debug.log*
