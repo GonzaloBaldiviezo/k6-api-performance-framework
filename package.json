@@ -7,7 +7,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "smoke": "pnpm run build && k6 run dist/tests/smoke/gorest.smoke.js",
-    "smoke:local": "pnpm run build && k6 run --vus 1 --iterations 1 dist/tests/smoke/gorest.smoke.js"
+    "smoke:local": "pnpm run build && k6 run --vus 1 --iterations 1 dist/tests/smoke/gorest.smoke.js",
+    "load:moderate": "pnpm run build && k6 run dist/tests/load/gorest.moderate.load.js",
+    "load:standard": "pnpm run build && k6 run dist/tests/load/gorest.standard.load.js",
+    "stress": "pnpm run build && k6 run dist/tests/stress/gorest.stress.js"
   },
   "devDependencies": {
     "@types/k6": "^1.3.1",
