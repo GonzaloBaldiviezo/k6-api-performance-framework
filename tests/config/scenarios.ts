@@ -22,6 +22,71 @@ const authHeaders = TOKEN
     }
   : commonHeaders;
 
+let cachedUserIds: number[] = [];
+let userIdsCacheExpiresAt = 0;
+
+function parseJsonBody(body: string | ArrayBuffer | null): unknown {
+  if (typeof body !== 'string') {
+    return null;
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch {
+    return null;
+  }
+}
+
+function extractUserIds(payload: unknown): number[] {
+  if (!Array.isArray(payload)) {
+    return [];
+  }
+
+  const ids: number[] = [];
+  for (const item of payload) {
+    if (typeof item === 'object' && item !== null && 'id' in item) {
+      const maybeId = (item as { id?: unknown }).id;
+      if (typeof maybeId === 'number') {
+        ids.push(maybeId);
+      }
+    }
+  }
+
+  return ids;
+}
+
+function refreshUserIdCache(): boolean {
+  const response = http.get(`${BASE_URL}/users?page=1&per_page=20`, {
+    headers: commonHeaders
+  });
+
+  if (response.status !== 200) {
+    return false;
+  }
+
+  const payload = parseJsonBody(response.body as string | ArrayBuffer | null);
+  const ids = extractUserIds(payload);
+  if (ids.length === 0) {
+    return false;
+  }
+
+  cachedUserIds = ids;
+  userIdsCacheExpiresAt = Date.now() + 30_000;
+  return true;
+}
+
+function getRandomUserId(): number | null {
+  if (cachedUserIds.length === 0 || Date.now() >= userIdsCacheExpiresAt) {
+    const refreshed = refreshUserIdCache();
+    if (!refreshed) {
+      return null;
+    }
+  }
+
+  const idx = Math.floor(Math.random() * cachedUserIds.length);
+  return cachedUserIds[idx] ?? null;
+}
+
 export const scenarios = {
   // Read scenarios (no token required)
   listUsers: (): ApiScenario => ({
@@ -34,9 +99,14 @@ export const scenarios = {
       check(response, {
         'status is 200': (r) => r.status === 200,
         'has users': (r) => {
-          const body = r.body as string | ArrayBuffer | null;
-          if (typeof body === 'string') return body.length > 0;
-          if (body instanceof ArrayBuffer) return body.byteLength > 0;
+          const payload = parseJsonBody(r.body as string | ArrayBuffer | null);
+          const ids = extractUserIds(payload);
+          if (ids.length > 0) {
+            cachedUserIds = ids;
+            userIdsCacheExpiresAt = Date.now() + 30_000;
+            return true;
+          }
+
           return false;
         }
       });
@@ -71,21 +141,25 @@ export const scenarios = {
   getUserDetails: (): ApiScenario => ({
     name: 'get_user_details',
     execute: () => {
-      // Use a static ID for consistency
-      const userId = 7984627;
+      const userId = getRandomUserId();
+      if (userId === null) {
+        sleep(0.5);
+        return;
+      }
+
       const response = http.get(`${BASE_URL}/users/${userId}`, {
         headers: commonHeaders
       });
 
       check(response, {
-        'status is 200 or 404': (r) => r.status === 200 || r.status === 404,
+        'status is 200': (r) => r.status === 200,
         'has user id': (r) => {
-          try {
-            const body = JSON.parse(r.body as string);
-            return body.id !== undefined || r.status === 404;
-          } catch {
+          const payload = parseJsonBody(r.body as string | ArrayBuffer | null);
+          if (typeof payload !== 'object' || payload === null) {
             return false;
           }
+
+          return 'id' in payload;
         }
       });
 
@@ -97,14 +171,22 @@ export const scenarios = {
   getUserPosts: (): ApiScenario => ({
     name: 'get_user_posts',
     execute: () => {
-      const userId = 7984627;
+      const userId = getRandomUserId();
+      if (userId === null) {
+        sleep(0.5);
+        return;
+      }
+
       const response = http.get(`${BASE_URL}/users/${userId}/posts`, {
         headers: commonHeaders
       });
 
       check(response, {
-        'status is 200 or 404': (r) => r.status === 200 || r.status === 404,
-        'is array': (r) => Array.isArray(JSON.parse(r.body as string)) || r.status === 404
+        'status is 200': (r) => r.status === 200,
+        'is array': (r) => {
+          const payload = parseJsonBody(r.body as string | ArrayBuffer | null);
+          return Array.isArray(payload);
+        }
       });
 
       sleep(0.5);
