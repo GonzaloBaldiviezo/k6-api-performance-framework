@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Performance testing framework for APIs using k6 + TypeScript",
-  "packageManager": "pnpm@10",
+  "packageManager": "pnpm@8.15.6",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "smoke": "pnpm run build && k6 run dist/tests/smoke/gorest.smoke.js",
