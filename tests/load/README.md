@@ -83,7 +83,7 @@ export GOREST_BASE_URL="https://gorest.co.in/public/v2"
 export GOREST_TOKEN="<optional_for_future_writes>"
 ```
 
-If TOKEN is set, mutation scenarios (POST/PATCH) can be enabled by adjusting weights in `config/scenarios.ts`.
+If TOKEN is set, mutation scenarios (POST/PATCH) can be enabled by adjusting weights in `tests/config/scenarios.ts`.
 
 ## Interpreting Results
 
