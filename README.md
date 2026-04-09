@@ -6,13 +6,13 @@ Performance testing framework for APIs using k6 and TypeScript.
 
 ```text
 .
-├── config/
-├── reports/
 ├── tests/
+│   ├── config/
 │   ├── load/
 │   ├── smoke/
 │   │   └── gorest.smoke.ts
 │   └── stress/
+├── reports/
 ├── package.json
 └── tsconfig.json
 ```
@@ -57,3 +57,13 @@ pnpm run smoke:local
 - `pnpm run build`: Transpiles TypeScript to `dist/`
 - `pnpm run smoke`: Build and run smoke test against GoREST
 - `pnpm run smoke:local`: Minimal setup validation
+- `pnpm run load:moderate`: Run the moderate load profile
+- `pnpm run load:standard`: Run the standard load profile
+- `pnpm run stress`: Run the stress profile
+
+## CI/CD
+
+- `.github/workflows/ci.yml`: runs on pull requests, pushes to `main`/`master`, and manual dispatch. It installs dependencies, builds the project, runs the smoke test, and uploads smoke artifacts.
+- `.github/workflows/load-tests.yml`: runs nightly and on manual dispatch. It executes the moderate load profile and uploads the resulting summary and log as artifacts.
+
+Artifacts include the k6 summary JSON and the console log for each run.
