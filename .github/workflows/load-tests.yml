@@ -38,7 +38,9 @@ jobs:
         run: pnpm run build
 
       - name: Run moderate load test
+        shell: bash
         run: |
+          set -o pipefail
           mkdir -p reports
           k6 run \
             --summary-export reports/moderate-summary.json \
@@ -46,9 +48,14 @@ jobs:
             | tee reports/moderate.log
 
       - name: Publish load summary
+        if: always()
         run: |
           node <<'EOF'
           const fs = require('fs');
+          if (!fs.existsSync('reports/moderate-summary.json')) {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '## Moderate Load Summary\n\nNo summary file was generated.\n');
+            process.exit(0);
+          }
           const summary = JSON.parse(fs.readFileSync('reports/moderate-summary.json', 'utf8'));
           const metrics = summary.metrics || {};
           const p95 = metrics.http_req_duration?.values?.['p(95)'] ?? 'n/a';
@@ -69,9 +76,11 @@ jobs:
           EOF
 
       - name: Upload load artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: moderate-load-report-${{ github.run_id }}
+          if-no-files-found: warn
           path: |
             reports/moderate-summary.json
             reports/moderate.log
