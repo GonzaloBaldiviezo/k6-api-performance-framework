@@ -123,6 +123,11 @@ jobs:
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "chore(history): append moderate run #${{ github.run_number }}"
           git push origin "${HISTORY_BRANCH}"
 
+      - name: Build history HTML report
+        if: always()
+        run: |
+          node scripts/history-report.mjs reports/moderate-history.json reports/moderate-history.html
+
       - name: Publish load summary
         if: always()
         run: |
@@ -170,3 +175,4 @@ jobs:
             reports/moderate-baseline-compare.md
             reports/moderate-history.json
             reports/history-entry.json
+            reports/moderate-history.html
