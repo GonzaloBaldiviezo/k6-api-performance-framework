@@ -61,9 +61,9 @@ jobs:
           }
           const summary = JSON.parse(fs.readFileSync('reports/smoke-summary.json', 'utf8'));
           const metrics = summary.metrics || {};
-          const p95 = metrics.http_req_duration?.values?.['p(95)'] ?? 'n/a';
-          const failed = metrics.http_req_failed?.values?.rate ?? 'n/a';
-          const iterations = metrics.iterations?.values?.count ?? 'n/a';
+          const p95 = metrics.http_req_duration?.['p(95)'] ?? metrics.http_req_duration?.values?.['p(95)'] ?? 'n/a';
+          const failed = metrics.http_req_failed?.value ?? metrics.http_req_failed?.values?.rate ?? 'n/a';
+          const iterations = metrics.iterations?.count ?? metrics.iterations?.values?.count ?? 'n/a';
           const lines = [
             '## Smoke Summary',
             '',
