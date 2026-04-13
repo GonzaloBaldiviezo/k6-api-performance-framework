@@ -125,6 +125,8 @@ pnpm run load:moderate:summary
 pnpm run baseline:set:moderate
 ```
 
+Commit `baselines/moderate.json` so CI can compare against a stable shared reference.
+
 3. For the next run, compare current summary vs baseline:
 
 ```bash
@@ -133,3 +135,5 @@ pnpm run baseline:compare:moderate
 ```
 
 The comparison prints metric deltas for p90/p95 latency, error rate, throughput, checks, and iterations.
+
+In GitHub Actions (`load-tests.yml`), compare is executed automatically after the moderate run.
