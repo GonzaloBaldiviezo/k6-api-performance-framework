@@ -108,3 +108,28 @@ If TOKEN is set, mutation scenarios (POST/PATCH) can be enabled by adjusting wei
 4. **Run stress** to identify breaking point
 
 Between runs, check `reports/` directory for exported results (if JSON exporting is enabled).
+
+## Baseline Comparison
+
+Use baseline comparison to evaluate whether a new run regresses or improves against a saved reference.
+
+1. Generate a summary file from moderate load:
+
+```bash
+pnpm run load:moderate:summary
+```
+
+2. Save it as baseline (first time, or when resetting baseline):
+
+```bash
+pnpm run baseline:set:moderate
+```
+
+3. For the next run, compare current summary vs baseline:
+
+```bash
+pnpm run load:moderate:summary
+pnpm run baseline:compare:moderate
+```
+
+The comparison prints metric deltas for p90/p95 latency, error rate, throughput, checks, and iterations.
