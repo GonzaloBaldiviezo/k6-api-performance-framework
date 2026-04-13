@@ -57,6 +57,70 @@ jobs:
           fi
           node scripts/baseline-compare.mjs baselines/moderate.json reports/moderate-summary.json | tee reports/moderate-baseline-compare.md
 
+      - name: Prepare history seed
+        if: always()
+        shell: bash
+        env:
+          HISTORY_BRANCH: perf-history
+        run: |
+          set -euo pipefail
+          mkdir -p reports
+          rm -rf .history-tmp
+          REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
+          if git ls-remote --exit-code --heads "$REPO_URL" "$HISTORY_BRANCH" >/dev/null 2>&1; then
+            git clone --depth 1 --branch "$HISTORY_BRANCH" "$REPO_URL" .history-tmp
+          else
+            git clone --depth 1 "$REPO_URL" .history-tmp
+            cd .history-tmp
+            git checkout --orphan "$HISTORY_BRANCH"
+            git rm -rf . >/dev/null 2>&1 || true
+            mkdir -p history
+            printf '{\n  "version": 1,\n  "updatedAt": null,\n  "entries": []\n}\n' > history/moderate-history.json
+            git add history/moderate-history.json
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'chore(history): initialize moderate history'
+            git push origin "$HISTORY_BRANCH"
+            cd ..
+          fi
+
+          mkdir -p reports
+          if [ -f .history-tmp/history/moderate-history.json ]; then
+            cp .history-tmp/history/moderate-history.json reports/moderate-history.json
+          else
+            printf '{\n  "version": 1,\n  "updatedAt": null,\n  "entries": []\n}\n' > reports/moderate-history.json
+          fi
+
+      - name: Append run to history
+        if: always()
+        env:
+          K6_PROFILE: moderate
+        run: |
+          node scripts/history-append.mjs \
+            reports/moderate-summary.json \
+            baselines/moderate.json \
+            reports/moderate-history.json \
+            reports/history-entry.json
+
+      - name: Persist history branch
+        if: always()
+        shell: bash
+        env:
+          HISTORY_BRANCH: perf-history
+        run: |
+          set -euo pipefail
+          test -d .history-tmp
+          mkdir -p .history-tmp/history
+          cp reports/moderate-history.json .history-tmp/history/moderate-history.json
+          cp reports/history-entry.json .history-tmp/history/latest-entry.json
+          cd .history-tmp
+          git add history/moderate-history.json history/latest-entry.json
+          if git diff --cached --quiet; then
+            echo "No history changes to commit."
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "chore(history): append moderate run #${{ github.run_number }}"
+          git push origin "${HISTORY_BRANCH}"
+
       - name: Publish load summary
         if: always()
         run: |
@@ -102,3 +166,5 @@ jobs:
             reports/moderate-summary.json
             reports/moderate.log
             reports/moderate-baseline-compare.md
+            reports/moderate-history.json
+            reports/history-entry.json
