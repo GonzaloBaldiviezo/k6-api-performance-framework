@@ -110,6 +110,20 @@ pnpm run baseline:compare:moderate
 
 If baseline file is missing in CI, the load workflow fails with an explicit error.
 
+## Historical Runs
+
+Moderate runs are persisted as historical data in the `perf-history` branch.
+
+- Source per run: `reports/moderate-summary.json`
+- Aggregated history file: `history/moderate-history.json` (in `perf-history`)
+- Latest run snapshot: `history/latest-entry.json` (in `perf-history`)
+
+You can also generate/update local history files manually:
+
+```bash
+pnpm run history:append:moderate
+```
+
 ## CI Workflows
 
 - `.github/workflows/ci.yml`
@@ -122,8 +136,9 @@ If baseline file is missing in CI, the load workflow fails with an explicit erro
 	- Trigger: nightly schedule + manual dispatch
 	- Runs moderate load with summary export
 	- Runs baseline comparison against `baselines/moderate.json`
+	- Appends run metrics to historical dataset in `perf-history`
 	- Publishes both moderate summary and baseline delta table
-	- Uploads summary, console log, and comparison output
+	- Uploads summary, console log, comparison output, and history artifacts
 
 ## Notes
 
