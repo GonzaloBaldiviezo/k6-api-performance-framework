@@ -1,16 +1,40 @@
-# k6-api-performance-framework
+# k6 API Performance Framework
 
-Performance testing framework for APIs using k6 and TypeScript.
+Performance testing framework for HTTP APIs built with k6 and TypeScript.
 
-## Directory Structure
+The project currently targets GoREST (`https://gorest.co.in/public/v2`) and provides:
+
+- Smoke tests for fast pipeline validation
+- Progressive load profiles (moderate, standard, stress)
+- Reusable scenario mix + thresholds
+- CI summaries in GitHub Actions
+- Baseline comparison to detect regressions over time
+
+## How It Works
+
+1. TypeScript test files are compiled into `dist/`.
+2. k6 runs the compiled scripts and exports a JSON summary into `reports/`.
+3. CI publishes key metrics in the GitHub job summary.
+4. Load workflow compares current metrics against `baselines/moderate.json`.
+
+## Project Structure
 
 ```text
 .
+├── .github/workflows/
+│   ├── ci.yml
+│   └── load-tests.yml
+├── baselines/
+│   └── moderate.json
+├── scripts/
+│   ├── baseline-set.mjs
+│   └── baseline-compare.mjs
 ├── tests/
 │   ├── config/
+│   │   ├── scenarios.ts
+│   │   └── thresholds.ts
 │   ├── load/
 │   ├── smoke/
-│   │   └── gorest.smoke.ts
 │   └── stress/
 ├── reports/
 ├── package.json
@@ -20,50 +44,88 @@ Performance testing framework for APIs using k6 and TypeScript.
 ## Prerequisites
 
 - Node.js 20+
-- pnpm
+- pnpm 8+
 - k6
 
-## Installation
+## Quick Start
+
+1. Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-## Running Tests
-
-### Smoke Test (GoREST)
-
-Set environment variables:
+2. (Optional) set API base URL:
 
 ```bash
 export GOREST_BASE_URL="https://gorest.co.in/public/v2"
-export GOREST_TOKEN="<YOUR_TOKEN>"
 ```
 
-Run:
+3. Run smoke test:
 
 ```bash
 pnpm run smoke
 ```
 
-For local validation without environment variables:
+If you want write scenarios later, set a token too:
 
 ```bash
-pnpm run smoke:local
+export GOREST_TOKEN="<YOUR_TOKEN>"
 ```
 
-## Available Scripts
+## NPM Scripts
 
-- `pnpm run build`: Transpiles TypeScript to `dist/`
-- `pnpm run smoke`: Build and run smoke test against GoREST
-- `pnpm run smoke:local`: Minimal setup validation
-- `pnpm run load:moderate`: Run the moderate load profile
-- `pnpm run load:standard`: Run the standard load profile
-- `pnpm run stress`: Run the stress profile
+- `pnpm run build`: compile TypeScript to `dist/`
+- `pnpm run smoke`: build + smoke test
+- `pnpm run smoke:local`: 1 VU / 1 iteration smoke check
+- `pnpm run load:moderate`: moderate profile
+- `pnpm run load:moderate:summary`: moderate profile + `reports/moderate-summary.json`
+- `pnpm run load:standard`: standard profile
+- `pnpm run stress`: stress profile
+- `pnpm run baseline:set:moderate`: create/update baseline file from latest moderate summary
+- `pnpm run baseline:compare:moderate`: compare latest moderate summary vs baseline
 
-## CI/CD
+## Baseline Strategy
 
-- `.github/workflows/ci.yml`: runs on pull requests, pushes to `main`/`master`, and manual dispatch. It installs dependencies, builds the project, runs the smoke test, and uploads smoke artifacts.
-- `.github/workflows/load-tests.yml`: runs nightly and on manual dispatch. It executes the moderate load profile and uploads the resulting summary and log as artifacts.
+Baseline is intentionally versioned in git (`baselines/moderate.json`).
 
-Artifacts include the k6 summary JSON and the console log for each run.
+- `set` is manual and controlled: run when you intentionally accept a new reference.
+- `compare` is automated in CI load workflow: every run shows metric deltas.
+
+### Typical Flow
+
+First baseline (or when resetting):
+
+```bash
+pnpm run load:moderate:summary
+pnpm run baseline:set:moderate
+```
+
+Normal comparison:
+
+```bash
+pnpm run load:moderate:summary
+pnpm run baseline:compare:moderate
+```
+
+If baseline file is missing in CI, the load workflow fails with an explicit error.
+
+## CI Workflows
+
+- `.github/workflows/ci.yml`
+	- Trigger: pull requests, push to `main`/`master`, manual dispatch
+	- Runs build + smoke
+	- Publishes smoke summary (`iterations`, `p95`, `error rate`)
+	- Uploads `reports/smoke-summary.json` and `reports/smoke.log`
+
+- `.github/workflows/load-tests.yml`
+	- Trigger: nightly schedule + manual dispatch
+	- Runs moderate load with summary export
+	- Runs baseline comparison against `baselines/moderate.json`
+	- Publishes both moderate summary and baseline delta table
+	- Uploads summary, console log, and comparison output
+
+## Notes
+
+- Load scenario details and thresholds are documented in `tests/load/README.md`.
+- Dynamic user ID caching is used in read scenarios to avoid false failures from stale fixed IDs.
