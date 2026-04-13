@@ -10,6 +10,8 @@ jobs:
     name: Moderate Load Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
     env:
       GOREST_BASE_URL: https://gorest.co.in/public/v2
 
