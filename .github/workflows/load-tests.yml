@@ -47,6 +47,16 @@ jobs:
             dist/tests/load/gorest.moderate.load.js \
             | tee reports/moderate.log
 
+      - name: Compare against baseline
+        shell: bash
+        run: |
+          if [ ! -f baselines/moderate.json ]; then
+            echo "::error::Missing baseline file: baselines/moderate.json"
+            echo "Run 'pnpm run baseline:set:moderate' and commit baselines/moderate.json before enabling CI comparison."
+            exit 1
+          fi
+          node scripts/baseline-compare.mjs baselines/moderate.json reports/moderate-summary.json | tee reports/moderate-baseline-compare.md
+
       - name: Publish load summary
         if: always()
         run: |
@@ -58,21 +68,28 @@ jobs:
           }
           const summary = JSON.parse(fs.readFileSync('reports/moderate-summary.json', 'utf8'));
           const metrics = summary.metrics || {};
-          const p95 = metrics.http_req_duration?.values?.['p(95)'] ?? 'n/a';
-          const p99 = metrics.http_req_duration?.values?.['p(99)'] ?? 'n/a';
-          const failed = metrics.http_req_failed?.values?.rate ?? 'n/a';
-          const throughput = metrics.http_reqs?.values?.rate ?? 'n/a';
+          const p95 = metrics.http_req_duration?.['p(95)'] ?? 'n/a';
+          const p90 = metrics.http_req_duration?.['p(90)'] ?? 'n/a';
+          const failed = metrics.http_req_failed?.value ?? 'n/a';
+          const throughput = metrics.http_reqs?.rate ?? 'n/a';
           const lines = [
             '## Moderate Load Summary',
             '',
             '| Metric | Value |',
             '| --- | --- |',
+            `| http_req_duration p(90) | ${p90} |`,
             `| http_req_duration p(95) | ${p95} |`,
-            `| http_req_duration p(99) | ${p99} |`,
             `| http_req_failed rate | ${failed} |`,
             `| Throughput (req/s) | ${throughput} |`
           ];
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
+
+          if (fs.existsSync('reports/moderate-baseline-compare.md')) {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '\n## Baseline Comparison\n\n');
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, fs.readFileSync('reports/moderate-baseline-compare.md', 'utf8') + '\n');
+          } else {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '\n## Baseline Comparison\n\nNo comparison output was generated.\n');
+          }
           EOF
 
       - name: Upload load artifacts
@@ -84,3 +101,4 @@ jobs:
           path: |
             reports/moderate-summary.json
             reports/moderate.log
+            reports/moderate-baseline-compare.md
