@@ -14,7 +14,8 @@
     "stress": "pnpm run build && k6 run dist/tests/stress/gorest.stress.js",
     "baseline:set:moderate": "node scripts/baseline-set.mjs reports/moderate-summary.json baselines/moderate.json",
     "baseline:compare:moderate": "node scripts/baseline-compare.mjs baselines/moderate.json reports/moderate-summary.json",
-    "history:append:moderate": "node scripts/history-append.mjs reports/moderate-summary.json baselines/moderate.json reports/moderate-history.json reports/history-entry.json"
+    "history:append:moderate": "node scripts/history-append.mjs reports/moderate-summary.json baselines/moderate.json reports/moderate-history.json reports/history-entry.json",
+    "history:report:moderate": "node scripts/history-report.mjs reports/moderate-history.json reports/moderate-history.html"
   },
   "devDependencies": {
     "@types/k6": "^1.3.1",
