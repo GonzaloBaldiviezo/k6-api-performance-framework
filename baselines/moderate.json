@@ -1,0 +1,12 @@
+{
+  "createdAt": "2026-04-13T06:47:00.322Z",
+  "sourceSummary": "reports/moderate-summary.json",
+  "metrics": {
+    "http_req_duration_p95": 698.523,
+    "http_req_duration_p90": 555.022,
+    "http_req_failed_rate": 0,
+    "http_reqs_rate": 7.578034380899781,
+    "checks_rate": 1,
+    "iterations_count": 1589
+  }
+}
