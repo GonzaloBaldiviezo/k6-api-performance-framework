@@ -45,33 +45,59 @@ function pickRecent(entries, getter, maxPoints = 20) {
 }
 
 function buildSparkline(values, color) {
-  const width = 300;
-  const height = 80;
+  const width = 640;
+  const height = 160;
+  const paddingX = 18;
+  const paddingY = 12;
 
   if (values.length === 0) {
-    return `<svg viewBox="0 0 ${width} ${height}" class="spark"><text x="8" y="42" fill="#777" font-size="12">No data</text></svg>`;
+    return {
+      svg: `<svg viewBox="0 0 ${width} ${height}" class="spark"><text x="12" y="84" fill="#777" font-size="14">No data</text></svg>`,
+      min: null,
+      max: null,
+      count: 0
+    };
   }
 
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
+  const plotWidth = width - paddingX * 2;
+  const plotHeight = height - paddingY * 2;
+
+  const gridLines = [0.25, 0.5, 0.75]
+    .map((ratio) => {
+      const y = paddingY + plotHeight * ratio;
+      return `<line x1="${paddingX}" y1="${y.toFixed(2)}" x2="${width - paddingX}" y2="${y.toFixed(2)}" stroke="#e6ebf2" stroke-width="1" />`;
+    })
+    .join('');
 
   if (values.length === 1) {
-    const y = height - ((values[0] - min) / range) * (height - 8) - 4;
-    return `<svg viewBox="0 0 ${width} ${height}" class="spark" aria-hidden="true"><line x1="0" y1="${y.toFixed(2)}" x2="${width}" y2="${y.toFixed(2)}" stroke="#d0d7de" stroke-width="1" /><circle cx="${(width / 2).toFixed(2)}" cy="${y.toFixed(2)}" r="4" fill="${color}" /></svg>`;
+    const y = paddingY + plotHeight / 2;
+    return {
+      svg: `<svg viewBox="0 0 ${width} ${height}" class="spark" aria-hidden="true">${gridLines}<line x1="${paddingX}" y1="${y.toFixed(2)}" x2="${width - paddingX}" y2="${y.toFixed(2)}" stroke="#d0d7de" stroke-width="1.5" /><circle cx="${(width / 2).toFixed(2)}" cy="${y.toFixed(2)}" r="4.5" fill="${color}" /></svg>`,
+      min,
+      max,
+      count: 1
+    };
   }
 
-  const step = width / (values.length - 1);
+  const step = plotWidth / (values.length - 1);
 
   const points = values
     .map((v, i) => {
-      const x = i * step;
-      const y = height - ((v - min) / range) * (height - 8) - 4;
+      const x = paddingX + i * step;
+      const y = height - paddingY - ((v - min) / range) * plotHeight;
       return `${x.toFixed(2)},${y.toFixed(2)}`;
     })
     .join(' ');
 
-  return `<svg viewBox="0 0 ${width} ${height}" class="spark" aria-hidden="true"><polyline fill="none" stroke="${color}" stroke-width="2.5" points="${points}" /></svg>`;
+  return {
+    svg: `<svg viewBox="0 0 ${width} ${height}" class="spark" aria-hidden="true">${gridLines}<polyline fill="none" stroke="${color}" stroke-width="2.5" points="${points}" /></svg>`,
+    min,
+    max,
+    count: values.length
+  };
 }
 
 function esc(value) {
@@ -103,6 +129,12 @@ const recent = entries.slice(-20).reverse();
 const p95Trend = buildSparkline(pickRecent(entries, (e) => e.metrics?.http_req_duration_p95), '#1f6feb');
 const throughputTrend = buildSparkline(pickRecent(entries, (e) => e.metrics?.http_reqs_rate), '#2da44e');
 const errorTrend = buildSparkline(pickRecent(entries, (e) => e.metrics?.http_req_failed_rate), '#cf222e');
+
+function chartMeta(labelMin, labelMax, trend, unit = '') {
+  const minTxt = trend.min === null ? 'n/a' : `${safeNumber(trend.min)}${unit}`;
+  const maxTxt = trend.max === null ? 'n/a' : `${safeNumber(trend.max)}${unit}`;
+  return `<div class="chart-meta"><span>${labelMin}: ${minTxt}</span><span>${labelMax}: ${maxTxt}</span></div>`;
+}
 
 const latestCards = latest
   ? `
@@ -193,9 +225,13 @@ const html = `<!doctype html>
     .card { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: #f8fbff; }
     .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
     .value { font-size: 24px; font-weight: 700; margin-top: 6px; }
-    .charts { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 16px; }
-    .chart-title { font-weight: 600; margin: 0 0 8px; }
-    .spark { width: 100%; height: 80px; background: #fcfdff; border: 1px solid var(--line); border-radius: 8px; }
+    .charts { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 16px; }
+    .chart-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #fcfdff; }
+    .chart-wide { grid-column: 1 / -1; }
+    .chart-title { font-weight: 600; margin: 0 0 6px; }
+    .chart-meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    .chart-axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .spark { width: 100%; height: 180px; background: #fcfdff; border: 1px solid var(--line); border-radius: 8px; }
     h2 { margin: 20px 0 12px 0; font-size: 18px; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--panel); border: 1px solid var(--line); }
     th, td { border-bottom: 1px solid #eef2f7; padding: 8px; text-align: left; }
@@ -210,6 +246,8 @@ const html = `<!doctype html>
       .hero { padding: 16px; }
       h1 { font-size: 22px; }
       .value { font-size: 20px; }
+      .charts { grid-template-columns: 1fr; }
+      .chart-wide { grid-column: auto; }
       table { font-size: 12px; }
     }
   </style>
@@ -224,17 +262,23 @@ const html = `<!doctype html>
     <section class="panel" style="margin-top: 14px;">
       ${latestCards}
       <div class="charts">
-        <div>
+        <div class="chart-card chart-wide">
           <p class="chart-title">p95 trend</p>
-          ${p95Trend}
+          ${chartMeta('min', 'max', p95Trend, ' ms')}
+          ${p95Trend.svg}
+          <div class="chart-axis"><span>oldest run</span><span>latest run</span></div>
         </div>
-        <div>
+        <div class="chart-card">
           <p class="chart-title">throughput trend</p>
-          ${throughputTrend}
+          ${chartMeta('min', 'max', throughputTrend, ' req/s')}
+          ${throughputTrend.svg}
+          <div class="chart-axis"><span>oldest run</span><span>latest run</span></div>
         </div>
-        <div>
+        <div class="chart-card">
           <p class="chart-title">error rate trend</p>
-          ${errorTrend}
+          ${chartMeta('min', 'max', errorTrend)}
+          ${errorTrend.svg}
+          <div class="chart-axis"><span>oldest run</span><span>latest run</span></div>
         </div>
       </div>
       <p class="muted">Color code: green means better, red means worse. For latency deltas, negative is better.</p>
