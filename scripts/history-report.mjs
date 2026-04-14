@@ -228,7 +228,48 @@ const html = `<!doctype html>
     .charts { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 16px; }
     .chart-card { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #fcfdff; }
     .chart-wide { grid-column: 1 / -1; }
-    .chart-title { font-weight: 600; margin: 0 0 6px; }
+    .chart-title-wrap { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; }
+    .chart-title { font-weight: 600; margin: 0; }
+    .tooltip-trigger {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #e9efff;
+      color: #1f6feb;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: help;
+      user-select: none;
+    }
+    .tooltip-trigger::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 50%;
+      top: calc(100% + 8px);
+      transform: translateX(-50%);
+      width: min(320px, 75vw);
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #1f2630;
+      color: #f5f7fa;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.3;
+      text-align: left;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 120ms ease;
+      z-index: 10;
+    }
+    .tooltip-trigger:hover::after,
+    .tooltip-trigger:focus-visible::after {
+      opacity: 1;
+    }
     .chart-meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
     .chart-axis { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-top: 4px; }
     .spark { width: 100%; height: 180px; background: #fcfdff; border: 1px solid var(--line); border-radius: 8px; }
@@ -263,19 +304,28 @@ const html = `<!doctype html>
       ${latestCards}
       <div class="charts">
         <div class="chart-card chart-wide">
-          <p class="chart-title">p95 trend</p>
+          <div class="chart-title-wrap">
+            <p class="chart-title">p95 trend</p>
+            <span class="tooltip-trigger" tabindex="0" data-tip="Shows the p95 latency trend per run. Lower values are usually better, since they indicate faster response times at the 95th percentile.">i</span>
+          </div>
           ${chartMeta('min', 'max', p95Trend, ' ms')}
           ${p95Trend.svg}
           <div class="chart-axis"><span>oldest run</span><span>latest run</span></div>
         </div>
         <div class="chart-card">
-          <p class="chart-title">throughput trend</p>
+          <div class="chart-title-wrap">
+            <p class="chart-title">throughput trend</p>
+            <span class="tooltip-trigger" tabindex="0" data-tip="Shows requests per second (req/s) per run. An upward trend usually indicates better processing capacity.">i</span>
+          </div>
           ${chartMeta('min', 'max', throughputTrend, ' req/s')}
           ${throughputTrend.svg}
           <div class="chart-axis"><span>oldest run</span><span>latest run</span></div>
         </div>
         <div class="chart-card">
-          <p class="chart-title">error rate trend</p>
+          <div class="chart-title-wrap">
+            <p class="chart-title">error rate trend</p>
+            <span class="tooltip-trigger" tabindex="0" data-tip="Shows the failed request rate per run. Ideally, this value should stay as close to zero as possible.">i</span>
+          </div>
           ${chartMeta('min', 'max', errorTrend)}
           ${errorTrend.svg}
           <div class="chart-axis"><span>oldest run</span><span>latest run</span></div>
