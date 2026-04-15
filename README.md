@@ -2,6 +2,16 @@
 
 Performance testing framework for HTTP APIs built with k6 and TypeScript.
 
+## TL;DR
+
+**What this project does:**
+
+- Checks if an API stays fast and stable under different traffic levels.
+- Measures response time and errors so issues are easy to spot.
+- Compares results over time to show if performance improved or got worse.
+
+---
+
 The project currently targets GoREST (`https://gorest.co.in/public/v2`) and provides:
 
 - Smoke tests for fast pipeline validation
