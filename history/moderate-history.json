@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-17T10:31:35.548Z",
+  "updatedAt": "2026-11-18T10:01:44.910Z",
   "entries": [
     {
       "timestamp": "2026-04-13T13:29:23.200Z",
@@ -9225,6 +9225,47 @@
         "http_reqs_rate": 30.95294908682525,
         "checks_rate": 0,
         "iterations_count": 31.088735053492762
+      }
+    },
+    {
+      "timestamp": "2026-11-18T10:01:44.910Z",
+      "profile": "moderate",
+      "sourceSummary": "reports/moderate-summary.json",
+      "ci": {
+        "runId": "44280814282",
+        "runNumber": "234",
+        "workflow": "Load Tests",
+        "ref": "main",
+        "sha": "ae8027ef2594ecd46068bf4344d175b9e052863e",
+        "actor": "GonzaloBaldiviezo",
+        "repository": "GonzaloBaldiviezo/k6-api-performance-framework"
+      },
+      "metrics": {
+        "http_req_duration_p90": 1249.231477,
+        "http_req_duration_p95": 1896.5560863999992,
+        "http_req_failed_rate": 0,
+        "http_reqs_rate": 6.430083014599785,
+        "checks_rate": 1,
+        "iterations_count": 1349
+      },
+      "baseline": {
+        "source": "reports/moderate-summary.json",
+        "metrics": {
+          "http_req_duration_p95": 698.523,
+          "http_req_duration_p90": 555.022,
+          "http_req_failed_rate": 0,
+          "http_reqs_rate": 7.578034380899781,
+          "checks_rate": 1,
+          "iterations_count": 1589
+        }
+      },
+      "deltaPct": {
+        "http_req_duration_p90": 125.07783060851641,
+        "http_req_duration_p95": 171.509468750492,
+        "http_req_failed_rate": 0,
+        "http_reqs_rate": -15.148405359487075,
+        "checks_rate": 0,
+        "iterations_count": -15.103838892385149
       }
     }
   ]
